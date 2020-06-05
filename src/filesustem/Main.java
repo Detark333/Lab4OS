@@ -2,16 +2,19 @@ package filesustem;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+
 import static systeminfo.SystemInfo.*;
+
 public class Main {
+
 	private ArrayList<FatRecord> fat;
 	private ArrayList<DiskCluster> dataRegion;
 	private HashMap<String, Integer> fileNames;
-	
+
 	public Main() {
 		init();
 	}
-	
+
 	private int getFreeSpace() {
 		int freeClusters = 0;
 		for (FatRecord rec : fat) {
@@ -21,7 +24,7 @@ public class Main {
 		}
 		return freeClusters * CLUSTER_SIZE.getValue();
 	}
-	
+
 	private void init() {
 		fat = new ArrayList<FatRecord>();
 		dataRegion = new ArrayList<DiskCluster>();
@@ -31,10 +34,8 @@ public class Main {
 		}
 		fileNames = new HashMap<String, Integer>();
 	}
-	
-	public void writeFile(File newFile) {
-		char[]data = newFile.getData();
-		String fileName = newFile.getName();
+
+	public void writeFile(String fileName, char[] data) {
 		if (getFreeSpace() < data.length) {
 			System.out.println("Not enougn space on disk");
 		} else {
@@ -47,7 +48,7 @@ public class Main {
 			}
 		}
 	}
-	
+
 	private void write(char[] data, int start) {
 		fat.get(start).setBusy(true);
 		if (data.length > CLUSTER_SIZE.getValue()) {
@@ -63,7 +64,7 @@ public class Main {
 		dataRegion.get(start).setData(data);
 		System.out.println("Complete!");
 	}
-	
+
 	private int firstFreeCluster() {
 		for (int i = 0; i < fat.size(); i++) {
 			if (!fat.get(i).isBusy()) {
@@ -72,8 +73,8 @@ public class Main {
 		}
 		return -1;
 	}
-	
-	public File getFile(String fileName) {
+
+	public char[] getFile(String fileName) {
 		char[] data = new char[0];
 		Integer cluster = fileNames.get(fileName);
 		if (cluster == null) {
@@ -100,9 +101,9 @@ public class Main {
 			temp[i] = block[j];
 		}
 		data = temp;
-		return new File(fileName, data);
+		return data;
 	}
-	
+
 	public void deleteFile(String fileName) {
 		Integer fileStart = fileNames.get(fileName);
 		if (fileStart == null) {

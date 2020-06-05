@@ -9,12 +9,12 @@ public class Main {
 
 	private ArrayList<FatRecord> fat;
 	private ArrayList<DiskCluster> dataRegion;
-	private HashMap<String, Integer> fileNames;
-
+	private ArrayList<File> fileList;
+	
 	public Main() {
 		init();
 	}
-
+	
 	private int getFreeSpace() {
 		int freeClusters = 0;
 		for (FatRecord rec : fat) {
@@ -24,7 +24,7 @@ public class Main {
 		}
 		return freeClusters * CLUSTER_SIZE.getValue();
 	}
-
+	
 	private void init() {
 		fat = new ArrayList<FatRecord>();
 		dataRegion = new ArrayList<DiskCluster>();
@@ -32,15 +32,16 @@ public class Main {
 			fat.add(i, new FatRecord());
 			dataRegion.add(i, new DiskCluster());
 		}
-		fileNames = new HashMap<String, Integer>();
+		fileList = new ArrayList<File>();
 	}
-
+	
 	public void writeFile(String fileName, char[] data) {
 		if (getFreeSpace() < data.length) {
 			System.out.println("Not enougn space on disk");
 		} else {
 			int fileStart = firstFreeCluster();
-			fileNames.put(fileName, fileStart);
+			File file = new File(fileName, fileStart);
+			fileList.add(file);
 			if (data.length > 0) {
 				write(data, fileStart);
 			} else {
@@ -48,7 +49,7 @@ public class Main {
 			}
 		}
 	}
-
+	
 	private void write(char[] data, int start) {
 		fat.get(start).setBusy(true);
 		if (data.length > CLUSTER_SIZE.getValue()) {
@@ -64,7 +65,7 @@ public class Main {
 		dataRegion.get(start).setData(data);
 		System.out.println("Complete!");
 	}
-
+	
 	private int firstFreeCluster() {
 		for (int i = 0; i < fat.size(); i++) {
 			if (!fat.get(i).isBusy()) {
@@ -73,10 +74,15 @@ public class Main {
 		}
 		return -1;
 	}
-
+	
 	public char[] getFile(String fileName) {
 		char[] data = new char[0];
-		Integer cluster = fileNames.get(fileName);
+		Integer cluster = null;
+		for (File file : fileList) {
+			if (file.getName().equals(fileName)) {
+				cluster = file.getFirstBlock();
+			}
+		}
 		if (cluster == null) {
 			System.out.println("File not found");
 		}
@@ -103,9 +109,16 @@ public class Main {
 		data = temp;
 		return data;
 	}
-
+	
 	public void deleteFile(String fileName) {
-		Integer fileStart = fileNames.get(fileName);
+		Integer fileStart = null;
+		File toDelete = null;
+		for (File file : fileList) {
+			if (file.getName().equals(fileName)) {
+				fileStart = file.getFirstBlock();
+				toDelete = file;
+			}
+		}
 		if (fileStart == null) {
 			System.out.println("File not found");
 		}
@@ -114,7 +127,7 @@ public class Main {
 			fileStart = fat.get(fileStart).getNext();
 		}
 		fat.get(fileStart).setBusy(false);
-		fileNames.remove(fileName);
+		fileList.remove(toDelete);
 		System.out.println("File removed");
 	}
 }
